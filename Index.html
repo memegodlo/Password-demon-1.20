@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Password Demon</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --red: #C8102E;
+  --red-dark: #8B0000;
+  --red-glow: rgba(200,16,46,0.14);
+  --cream: #FBF5F0;
+  --white: #FFFFFF;
+  --charcoal: #1C1C1C;
+  --mid: #6A6A6A;
+  --border: #EAD8DA;
+  --green: #1C6B3A;
+  --green-bg: #EFF9F3;
+  --green-border: #B0DBBF;
+  --accent: #C8102E;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--charcoal);overflow-x:hidden;}
+
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(200,16,46,0.07) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;position:relative;z-index:1;}
+
+/* BRAND */
+.brand{display:flex;flex-direction:column;align-items:center;margin-bottom:36px;animation:rise 0.6s cubic-bezier(.22,1,.36,1) both;}
+.brand-logo{width:58px;height:58px;margin-bottom:12px;filter:drop-shadow(0 6px 18px rgba(200,16,46,0.3));}
+.brand-name{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:var(--charcoal);}
+.brand-name em{font-style:italic;color:var(--red);}
+.brand-sub{font-size:11px;color:var(--mid);letter-spacing:2px;text-transform:uppercase;margin-top:5px;font-weight:500;}
+
+/* DETECTING BADGE */
+.detecting{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 18px;background:#fff;border:1px solid var(--border);
+  border-radius:30px;font-size:13px;color:var(--mid);font-weight:500;
+  box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  animation:rise 0.5s 0.2s both;
+}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.2s infinite;}
+
+/* HOST BADGE shown after detection */
+.host-badge{
+  display:none;
+  align-items:center;gap:10px;
+  padding:8px 20px;background:#fff;border:1px solid var(--border);
+  border-radius:30px;font-size:13px;color:var(--charcoal);font-weight:600;
+  box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  animation:rise 0.4s both;
+}
+.host-dot{width:10px;height:10px;border-radius:50%;}
+
+/* CARD */
+.wizard{
+  width:100%;max-width:500px;
+  background:var(--white);border-radius:20px;border:1px solid var(--border);
+  box-shadow:0 8px 48px rgba(0,0,0,0.09),0 2px 8px rgba(200,16,46,0.06);
+  overflow:hidden;
+  animation:rise 0.55s 0.1s cubic-bezier(.22,1,.36,1) both;
+}
+
+.progress-track{height:3px;background:#F2E6E8;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--red-dark),var(--red));border-radius:0 3px 3px 0;transition:width 0.45s cubic-bezier(.4,0,.2,1);}
+
+/* CARD HEADER */
+.card-head{
+  padding:26px 32px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;
+}
+.site-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;
+  flex-shrink:0;box-shadow:0 2px 10px rgba(0,0,0,0.15);
+  background:var(--red);
+}
+.head-meta small{font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mid);font-weight:600;}
+.head-meta h2{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--charcoal);margin-top:2px;}
+.step-pill{
+  margin-left:auto;font-size:11px;color:var(--mid);font-weight:500;
+  background:#F5F0F0;padding:4px 12px;border-radius:20px;white-space:nowrap;
+}
+
+/* BODY */
+.card-body{padding:26px 32px 30px;}
+
+/* REQS */
+.reqs{display:flex;flex-direction:column;gap:6px;margin-bottom:24px;}
+.req{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:9px;border:1px solid #F0F0F0;background:#FAFAFA;transition:background 0.2s,border-color 0.2s;}
+.req.met{background:var(--green-bg);border-color:var(--green-border);}
+.req.unmet{background:#FFF4F5;border-color:#F0D0D5;}
+.req-dot{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:background 0.2s;}
+.req-dot.n{background:#E8E8E8;color:#999;}
+.req-dot.ok{background:var(--green);color:#fff;}
+.req-dot.bad{background:#E8B0B8;color:var(--red-dark);}
+.req-text{font-size:12.5px;line-height:1.5;color:var(--charcoal);}
+.req.met .req-text{color:var(--green);}
+.req.unmet .req-text{color:var(--red-dark);}
+
+/* INPUT */
+.input-label{font-size:11px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--mid);margin-bottom:7px;}
+.input-wrap{position:relative;}
+.pw-field{
+  width:100%;font-family:'DM Sans',sans-serif;font-size:16px;
+  padding:12px 52px 12px 15px;
+  border:1.5px solid var(--border);border-radius:10px;
+  background:var(--cream);color:var(--charcoal);outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.pw-field:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--red-glow);background:#fff;}
+.pw-field::placeholder{color:#C8B0B4;}
+.enter-hint{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:11px;color:#BBA0A5;background:var(--border);
+  padding:3px 8px;border-radius:5px;pointer-events:none;
+  opacity:0;transition:opacity 0.2s;
+}
+
+/* STRENGTH */
+.strength-row{display:flex;align-items:center;gap:10px;margin-top:9px;}
+.s-track{flex:1;height:4px;background:#EEE;border-radius:4px;overflow:hidden;}
+.s-fill{height:100%;border-radius:4px;transition:width 0.3s,background 0.3s;}
+.s-lbl{font-size:11px;font-weight:600;min-width:60px;text-align:right;}
+
+.err{min-height:16px;font-size:12px;color:var(--red);font-weight:500;margin-top:9px;}
+
+/* BUTTON */
+.next-btn{
+  width:100%;margin-top:20px;padding:13px;
+  background:var(--red);color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;
+  border:none;border-radius:10px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(200,16,46,0.28);
+  transition:background 0.15s,box-shadow 0.15s,transform 0.1s;
+}
+.next-btn:hover:not(:disabled){background:#A50D26;box-shadow:0 6px 20px rgba(200,16,46,0.36);}
+.next-btn:active:not(:disabled){transform:scale(0.985);}
+.next-btn:disabled{background:#DDD;color:#AAA;box-shadow:none;cursor:not-allowed;}
+
+/* REDIRECT SCREEN */
+.redirect-screen{display:none;flex-direction:column;align-items:center;padding:52px 32px;text-align:center;}
+.check-ring{width:68px;height:68px;border-radius:50%;background:var(--green-bg);border:2px solid var(--green-border);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:20px;animation:pop 0.4s cubic-bezier(.175,.885,.32,1.275) both;}
+.redirect-screen h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:8px;}
+.redirect-screen p{font-size:13px;color:var(--mid);line-height:1.6;max-width:300px;}
+.countdown{margin-top:20px;font-size:13px;color:var(--mid);}
+.countdown strong{color:var(--red);}
+.manual-link{display:inline-block;margin-top:16px;color:var(--red);font-size:13px;font-weight:600;text-decoration:none;}
+.manual-link:hover{text-decoration:underline;}
+
+/* UNKNOWN HOST */
+.unknown-screen{display:flex;flex-direction:column;align-items:center;padding:48px 32px;text-align:center;}
+.unknown-screen h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:10px;}
+.unknown-screen p{font-size:13px;color:var(--mid);line-height:1.6;max-width:320px;}
+.demo-links{margin-top:24px;display:flex;flex-direction:column;gap:8px;width:100%;}
+.demo-link{padding:11px 16px;border-radius:9px;border:1px solid var(--border);background:#FAFAFA;font-size:13px;font-weight:600;color:var(--charcoal);text-decoration:none;display:flex;align-items:center;gap:10px;transition:background 0.15s,border-color 0.15s;}
+.demo-link:hover{background:#fff;border-color:var(--red);color:var(--red);}
+.demo-dot{width:9px;height:9px;border-radius:50%;}
+
+/* ANIMATIONS */
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+@keyframes pop{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes slide{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.slide{animation:slide 0.32s cubic-bezier(.22,1,.36,1) both;}
+
+.footer{margin-top:22px;font-size:11px;color:#C0A8AA;letter-spacing:0.5px;animation:rise 0.6s 0.3s both;}
+.copyright{margin-top:10px;font-size:10.5px;color:#D4C2C4;letter-spacing:0.3px;animation:rise 0.6s 0.35s both;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="brand">
+    <svg class="brand-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="22,32 12,6 37,24" fill="#888"/>
+      <polygon points="78,32 88,6 63,24" fill="#888"/>
+      <circle cx="50" cy="58" r="38" fill="#C8102E"/>
+      <ellipse cx="36" cy="50" rx="10" ry="7" fill="white" transform="rotate(-18,36,50)"/>
+      <ellipse cx="64" cy="50" rx="10" ry="7" fill="white" transform="rotate(18,64,50)"/>
+      <path d="M34,72 Q50,63 66,72" stroke="white" stroke-width="5" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div class="brand-name">Password <em>Demon</em></div>
+    <div class="brand-sub">Secure Password System</div>
+  </div>
+
+  <!-- Detecting badge -->
+  <div class="detecting" id="detecting-badge">
+    <div class="pulse"></div>
+    Detecting host website…
+  </div>
+
+  <!-- After detection: show host -->
+  <div class="host-badge" id="host-badge">
+    <div class="host-dot" id="host-dot"></div>
+    <span id="host-label">example.com</span>
+  </div>
+
+  <div style="height:20px"></div>
+
+  <div class="wizard" id="wizard">
+    <div class="progress-track"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+    <div id="slot"></div>
+  </div>
+
+  <div class="footer" id="footer">Meet all requirements · Press Enter ↵ to continue</div>
+  <div class="copyright">Password Demon © 2026</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  SITE DATABASE
+//  Each entry: hostname patterns → config
+// ═══════════════════════════════════════════════
+const SITE_DB = [
+  {
+    patterns: ['google.com','accounts.google.com','mail.google.com'],
+    name: 'Google',
+    letter: 'G',
+    color: '#4285F4',
+    signupUrl: 'https://accounts.google.com/signup',
+    loginUrl:  'https://accounts.google.com/',
+    steps: [
+      {
+        title: 'Create your Google password',
+        rules: [
+          { label: 'Exactly 17 characters.', check: p => p.length===17 },
+          { label: 'At least 3 uppercase letters, none consecutive.', check: p => [...p].filter(c=>c>='A'&&c<='Z').length>=3 && !/[A-Z]{2}/.test(p) },
+          { label: 'A prime number of digits (2, 3, 5, or 7).', check: p => [2,3,5,7].includes([...p].filter(c=>c>='0'&&c<='9').length) },
+          { label: 'Contains a Roman numeral (I, V, X, L, C, D, or M).', check: p => /[IVXLCDM]/.test(p) },
+          { label: 'First 5 characters form a palindrome.', check: p => { if(p.length<5)return false; const s=p.slice(0,5).toLowerCase(); return s===s.split('').reverse().join(''); } },
+          { label: 'Exactly 2 special characters, both different.', check: p => { const sp=[...p].filter(c=>/[^a-zA-Z0-9]/.test(c)); return sp.length===2&&sp[0]!==sp[1]; } },
+        ]
+      },
+      {
+        title: 'Confirm your password',
+        rules: [
+          { label: 'Must match the password you just created.', check: (p, ctx) => p === ctx.prev },
+        ]
+      }
+    ]
+  },
+  {
+    patterns: ['reddit.com','www.reddit.com','old.reddit.com'],
+    name: 'Reddit',
+    letter: 'R',
+    color: '#FF4500',
+    signupUrl: 'https://www.reddit.com/register/',
+    loginUrl:  'https://www.reddit.com/login/',
+    steps: [
+      {
+        title: 'Create your Reddit password',
+        rules: [
+          { label: "Contains the word 'upvote'.", check: p => p.toLowerCase().includes('upvote') },
+          { label: 'No spaces, but must include an underscore.', check: p => !p.includes(' ')&&p.includes('_') },
+          { label: 'Between 12 and 20 characters.', check: p => p.length>=12&&p.length<=20 },
+          { label: 'All digits must sum to exactly 10.', check: p => { const d=[...p].filter(c=>c>='0'&&c<='9').map(Number); return d.length>0&&d.reduce((a,b)=>a+b,0)===10; } },
+          { label: "Ends with '!!!'.", check: p => p.endsWith('!!!') },
+          { label: 'No 4+ consecutive consonants.', check: p => !/[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]{4}/.test(p) },
+        ]
+      },
+      {
+        title: 'Confirm your password',
+        rules: [{ label: 'Must match your Reddit password.', check: (p,ctx)=>p===ctx.prev }]
+      }
+    ]
+  },
+  {
+    patterns: ['netflix.com','www.netflix.com'],
+    name: 'Netflix',
+    letter: 'N',
+    color: '#E50914',
+    signupUrl: 'https://www.netflix.com/signup',
+    loginUrl:  'https://www.netflix.com/login',
+    steps: [
+      {
+        title: 'Create your Netflix password',
+        rules: [
+          { label: 'Includes a season: spring, summer, fall, or winter.', check: p => /spring|summer|fall|winter/i.test(p) },
+          { label: 'Contains a season code like S01 or S12.', check: p => /S\d{2}/.test(p) },
+          { label: 'At least 16 characters.', check: p => p.length>=16 },
+          { label: 'More vowels than consonants.', check: p => { const v=[...p.toLowerCase()].filter(c=>'aeiou'.includes(c)).length; const co=[...p.toLowerCase()].filter(c=>'bcdfghjklmnpqrstvwxyz'.includes(c)).length; return v>co; } },
+          { label: 'Contains a year from 1990 to 2005.', check: p => { for(let y=1990;y<=2005;y++) if(p.includes(String(y))) return true; return false; } },
+          { label: 'Starts and ends with an uppercase letter.', check: p => p.length>0&&/[A-Z]/.test(p[0])&&/[A-Z]/.test(p[p.length-1]) },
+        ]
+      },
+      {
+        title: 'Confirm your password',
+        rules: [{ label: 'Must match your Netflix password.', check: (p,ctx)=>p===ctx.prev }]
+      }
+    ]
+  },
+  {
+    patterns: ['amazon.com','www.amazon.com'],
+    name: 'Amazon',
+    letter: 'A',
+    color: '#FF9900',
+    signupUrl: 'https://www.amazon.com/ap/register',
+    loginUrl:  'https://www.amazon.com/ap/signin',
+    steps: [
+      {
+        title: 'Create your Amazon password',
+        rules: [
+          { label: "Contains the word 'prime'.", check: p => p.includes('prime') },
+          { label: "Includes a '$' character.", check: p => p.includes('$') },
+          { label: 'Between 13 and 19 characters.', check: p => p.length>=13&&p.length<=19 },
+          { label: 'No character appears more than twice.', check: p => { const f={}; for(const c of p){f[c]=(f[c]||0)+1; if(f[c]>2) return false;} return true; } },
+          { label: "Contains '>' or '<'.", check: p => p.includes('>')||p.includes('<') },
+          { label: 'Letters strictly alternate uppercase/lowercase.', check: p => { const l=[...p].filter(c=>/[a-zA-Z]/.test(c)); for(let i=1;i<l.length;i++){if((l[i]>='a')===(l[i-1]>='a')) return false;} return l.length>0; } },
+        ]
+      },
+      {
+        title: 'Confirm your password',
+        rules: [{ label: 'Must match your Amazon password.', check: (p,ctx)=>p===ctx.prev }]
+      }
+    ]
+  },
+  {
+    patterns: ['x.com','twitter.com','www.x.com','www.twitter.com'],
+    name: 'Twitter / X',
+    letter: 'X',
+    color: '#14171A',
+    signupUrl: 'https://x.com/i/flow/signup',
+    loginUrl:  'https://x.com/i/flow/login',
+    steps: [
+      {
+        title: 'Create your X password',
+        rules: [
+          { label: 'Exactly 14 characters.', check: p => p.length===14 },
+          { label: "Exactly one '#'.", check: p => (p.match(/#/g)||[]).length===1 },
+          { label: "Exactly one '@'.", check: p => (p.match(/@/g)||[]).length===1 },
+          { label: "Does not contain the letter 'e'.", check: p => !/[eE]/.test(p) },
+          { label: 'At least half of all letters are uppercase.', check: p => { const l=[...p].filter(c=>/[a-zA-Z]/.test(c)); const u=l.filter(c=>c>='A'&&c<='Z').length; return l.length>0&&u>=l.length/2; } },
+          { label: "Ends with 'X'.", check: p => p.endsWith('X') },
+        ]
+      },
+      {
+        title: 'Confirm your password',
+        rules: [{ label: 'Must match your X password.', check: (p,ctx)=>p===ctx.prev }]
+      }
+    ]
+  },
+  // GitHub
+  {
+    patterns: ['github.com','www.github.com'],
+    name: 'GitHub',
+    letter: '⌥',
+    color: '#24292E',
+    signupUrl: 'https://github.com/signup',
+    loginUrl:  'https://github.com/login',
+    steps: [
+      {
+        title: 'Create your GitHub password',
+        rules: [
+          { label: 'At least 15 characters.', check: p => p.length>=15 },
+          { label: "Contains 'git' (case-insensitive).", check: p => p.toLowerCase().includes('git') },
+          { label: 'Must include at least one digit.', check: p => /\d/.test(p) },
+          { label: 'Must include at least one special character.', check: p => /[^a-zA-Z0-9]/.test(p) },
+          { label: 'Cannot start or end with a digit.', check: p => p.length>0&&!/^\d/.test(p)&&!/\d$/.test(p) },
+          { label: 'No character repeats 3 or more times in a row.', check: p => !/(.)\1{2}/.test(p) },
+        ]
+      },
+      {
+        title: 'Confirm your password',
+        rules: [{ label: 'Must match your GitHub password.', check: (p,ctx)=>p===ctx.prev }]
+      }
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════════
+//  DETECT HOST
+//  Works for any embedding website (via referrer/
+//  parent origin) or any standalone HTML file
+//  (via its filename) — no demo mode required.
+// ═══════════════════════════════════════════════
+function getEmbedderName() {
+  // 1) Explicit override via query string (still supported, but not required)
+  const qp = new URLSearchParams(window.location.search).get('host');
+  if (qp) return qp;
+
+  // 2) If embedded in an iframe, the referrer is the parent page's URL
+  if (window.parent !== window && document.referrer) return document.referrer;
+
+  // 3) Direct browser navigation: try the parent page referrer anyway
+  if (document.referrer) return document.referrer;
+
+  // 4) Standalone file opened directly (file:// or no referrer):
+  //    use this document's own URL / filename as its identity
+  return window.location.href;
+}
+
+function nameFromUrlOrFile(raw) {
+  if (!raw) return null;
+  // Try as a full URL with a real hostname first
+  try {
+    const u = new URL(raw.includes('://') ? raw : 'https://' + raw);
+    if (u.hostname && u.hostname !== 'localhost' && !u.protocol.startsWith('file')) {
+      return u.hostname.replace(/^www\./,'');
+    }
+    // file:// or no hostname — fall back to filename
+    const file = u.pathname.split('/').pop() || '';
+    if (file) return file.replace(/\.html?$/i,'');
+  } catch(e) {
+    // Not a valid URL — treat as a bare filename or site name
+    const file = raw.split('/').pop() || raw;
+    return file.replace(/\.html?$/i,'');
+  }
+  return null;
+}
+
+// Deterministic hash so the same unrecognized site/file
+// always gets the same generated rule set.
+function hashStr(s) {
+  let h = 0;
+  for (let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; }
+  return h;
+}
+
+const RULE_POOL = [
+  { label: n => `Must be at least ${n} characters long.`, gen: h => 12 + (h%9), check: (p,n) => p.length>=n },
+  { label: () => "Must contain at least one uppercase and one lowercase letter.", check: p => /[A-Z]/.test(p)&&/[a-z]/.test(p) },
+  { label: () => "Must contain at least one digit.", check: p => /\d/.test(p) },
+  { label: () => "Must contain at least one special character.", check: p => /[^a-zA-Z0-9]/.test(p) },
+  { label: n => `Must include the site name fragment '${n}'.`, gen: (h,frag) => frag, check: (p,frag) => p.toLowerCase().includes(frag.toLowerCase()) },
+  { label: () => "Cannot contain spaces.", check: p => !/\s/.test(p) },
+  { label: () => "No character may repeat 3 or more times in a row.", check: p => !/(.)\1{2}/.test(p) },
+  { label: n => `Must contain exactly ${n} digit${n>1?'s':''}.`, gen: h => 1+(h%4), check: (p,n) => [...p].filter(c=>c>='0'&&c<='9').length===n },
+  { label: () => "Must start with an uppercase letter.", check: p => p.length>0 && /[A-Z]/.test(p[0]) },
+  { label: () => "Must end with a digit.", check: p => /\d$/.test(p) },
+  { label: n => `Must contain at least ${n} vowels.`, gen: h => 2+(h%3), check: (p,n) => [...p.toLowerCase()].filter(c=>'aeiou'.includes(c)).length>=n },
+  { label: () => "Must not contain the same character twice in a row.", check: p => !/(.)\1/.test(p) },
+];
+
+const PALETTE = ['#C8102E','#2563EB','#7C3AED','#059669','#D97706','#DB2777','#0891B2','#65A30D','#9333EA','#DC2626'];
+
+function buildGeneratedSite(rawId, displayName) {
+  const h = hashStr(rawId);
+  const color = PALETTE[h % PALETTE.length];
+  const letter = (displayName[0] || 'P').toUpperCase();
+
+  // Pick 6 rules deterministically from the pool, avoiding duplicates
+  const poolIdxs = [];
+  let seed = h;
+  while (poolIdxs.length < 6) {
+    seed = (seed*31+7) >>> 0;
+    const idx = seed % RULE_POOL.length;
+    if (!poolIdxs.includes(idx)) poolIdxs.push(idx);
+  }
+
+  const fragSource = displayName.replace(/[^a-zA-Z]/g,'').slice(0,5) || 'site';
+  const rules = poolIdxs.map((idx,i) => {
+    const def = RULE_POOL[idx];
+    const n = def.gen ? def.gen(h+i, fragSource) : null;
+    return { label: def.label(n), check: p => def.check(p, n) };
+  });
+
+  return {
+    patterns: [rawId],
+    name: displayName,
+    letter,
+    color,
+    signupUrl: null,
+    loginUrl: null,
+    generated: true,
+    steps: [
+      { title: `Create your ${displayName} password`, rules },
+      { title: 'Confirm your password', rules: [{ label: `Must match your ${displayName} password.`, check: (p,ctx)=>p===ctx.prev }] }
+    ]
+  };
+}
+
+function prettifyName(id) {
+  return id
+    .replace(/\.(com|org|net|io|dev|app|co)$/i,'')
+    .split(/[.\-_]+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase()+w.slice(1))
+    .join(' ') || 'This Site';
+}
+
+function detectSite() {
+  const raw = getEmbedderName();
+  const id = nameFromUrlOrFile(raw);
+  if (!id) return buildGeneratedSite('unknown-site', 'This Site');
+
+  // Try known database first (exact or subdomain match)
+  for (const s of SITE_DB) {
+    if (s.patterns.some(p => p === id || id.endsWith('.'+p))) return s;
+  }
+
+  // Not in the database — generate consistent rules for this
+  // website / HTML file so it still gets a full experience.
+  return buildGeneratedSite(id, prettifyName(id));
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let site = null;
+let stepIdx = 0;
+let password = '';
+let prevPassword = '';
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+setTimeout(() => {
+  site = detectSite();
+
+  document.getElementById('detecting-badge').style.display = 'none';
+
+  const badge = document.getElementById('host-badge');
+  badge.style.display = 'flex';
+  document.getElementById('host-dot').style.background = site.color;
+  document.getElementById('host-label').textContent = site.patterns[0];
+
+  document.documentElement.style.setProperty('--accent', site.color);
+
+  stepIdx = 0;
+  password = '';
+  renderStep();
+}, 900);
+
+
+
+// ═══════════════════════════════════════════════
+//  RENDER STEP
+// ═══════════════════════════════════════════════
+function renderStep() {
+  const steps = site.steps;
+  const step = steps[stepIdx];
+  const ctx = { prev: prevPassword };
+  const results = step.rules.map(r => ({ ...r, met: r.check(password, ctx) }));
+  const metCount = results.filter(r=>r.met).length;
+  const total = steps.length;
+  const pct = Math.round((metCount/step.rules.length)*100);
+  const allMet = metCount===step.rules.length;
+
+  const progPct = (stepIdx / total) * 100;
+  document.getElementById('prog').style.width = progPct + '%';
+
+  const { sLabel, sColor, sPct } = strengthInfo(pct, password.length);
+
+  const isLast = stepIdx === total - 1;
+
+  document.getElementById('slot').innerHTML = `
+    <div class="slide">
+      <div class="card-head">
+        <div class="site-icon" style="background:${site.color}">${site.letter}</div>
+        <div class="head-meta">
+          <small>${site.patterns[0]}</small>
+          <h2>${step.title}</h2>
+        </div>
+        <div class="step-pill">${stepIdx+1} / ${total}</div>
+      </div>
+      <div class="card-body">
+        <div class="reqs" id="reqs">
+          ${results.map(r => {
+            const cls = password.length===0 ? '' : r.met ? 'met' : 'unmet';
+            const dc = password.length===0 ? 'n' : r.met ? 'ok' : 'bad';
+            const icon = password.length===0 ? '–' : r.met ? '✓' : '✗';
+            return `<div class="req ${cls}"><div class="req-dot ${dc}">${icon}</div><div class="req-text">${r.label}</div></div>`;
+          }).join('')}
+        </div>
+
+        <div class="input-label">Password</div>
+        <div class="input-wrap">
+          <input class="pw-field" type="${stepIdx>0?'password':'text'}" id="pw-input"
+            placeholder="${stepIdx>0 ? 'Re-enter your password…' : 'Type your password…'}"
+            value="${esc(password)}"
+            oninput="onInput(this.value)"
+            onkeydown="onKey(event)"
+            autocomplete="off" autocorrect="off" spellcheck="false"/>
+          <div class="enter-hint" id="ehint" style="opacity:${password.length>0?1:0}">↵ Enter</div>
+        </div>
+
+        <div class="strength-row">
+          <div class="s-track"><div class="s-fill" id="sfill" style="width:${password.length===0?0:sPct}%;background:${sColor}"></div></div>
+          <div class="s-lbl" id="slbl" style="color:${sColor}">${sLabel}</div>
+        </div>
+
+        <div class="err" id="err"></div>
+
+        <button class="next-btn" id="nbtn" onclick="advance()" ${allMet?'':'disabled'}
+          style="background:${allMet?site.color:'#DDD'}">
+          ${isLast ? `Create Account on ${site.name}` : 'Continue →'}
+        </button>
+      </div>
+    </div>
+  `;
+
+  setTimeout(()=>{ const el=document.getElementById('pw-input'); if(el){el.focus();el.setSelectionRange(password.length,password.length);} },30);
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function strengthInfo(pct, len) {
+  if(len===0) return { sLabel:'', sColor:'#EEE', sPct:0 };
+  if(pct<34) return { sLabel:'Needs work', sColor:'#C8102E', sPct:pct };
+  if(pct<67) return { sLabel:'Getting there', sColor:'#D97706', sPct:pct };
+  if(pct<100) return { sLabel:'Almost!', sColor:'#CA8A04', sPct:pct };
+  return { sLabel:'Complete ✓', sColor:'#1C6B3A', sPct:100 };
+}
+
+function onInput(val) {
+  password = val;
+  const step = site.steps[stepIdx];
+  const ctx = { prev: prevPassword };
+  const results = step.rules.map(r => r.check(val, ctx));
+  const metCount = results.filter(Boolean).length;
+  const pct = Math.round((metCount/step.rules.length)*100);
+  const allMet = metCount===step.rules.length;
+  const { sLabel, sColor, sPct } = strengthInfo(pct, val.length);
+
+  // update reqs inline
+  document.querySelectorAll('#reqs .req').forEach((el,i) => {
+    const met = results[i];
+    el.className = 'req '+(val.length===0?'':met?'met':'unmet');
+    const dot = el.querySelector('.req-dot');
+    dot.className = 'req-dot '+(val.length===0?'n':met?'ok':'bad');
+    dot.textContent = val.length===0?'–':met?'✓':'✗';
+  });
+
+  const sf=document.getElementById('sfill'); if(sf){sf.style.width=(val.length===0?0:sPct)+'%';sf.style.background=sColor;}
+  const sl=document.getElementById('slbl'); if(sl){sl.style.color=sColor;sl.textContent=sLabel;}
+  const eh=document.getElementById('ehint'); if(eh) eh.style.opacity=val.length>0?'1':'0';
+  const btn=document.getElementById('nbtn'); if(btn){btn.disabled=!allMet;btn.style.background=allMet?site.color:'#DDD';btn.style.color=allMet?'#fff':'#AAA';}
+  const err=document.getElementById('err'); if(err) err.textContent='';
+}
+
+function onKey(e) { if(e.key==='Enter'){e.preventDefault();advance();} }
+
+function advance() {
+  const step = site.steps[stepIdx];
+  const ctx = { prev: prevPassword };
+  const allMet = step.rules.every(r => r.check(password, ctx));
+  if(!allMet) {
+    const f=document.getElementById('pw-input');
+    if(f){f.classList.remove('shake');void f.offsetWidth;f.classList.add('shake');}
+    const missing=step.rules.filter(r=>!r.check(password,ctx)).length;
+    const e=document.getElementById('err');
+    if(e) e.textContent=`${missing} requirement${missing>1?'s':''} not met yet.`;
+    return;
+  }
+
+  if(stepIdx < site.steps.length - 1) {
+    prevPassword = password;
+    password = '';
+    stepIdx++;
+    renderStep();
+  } else {
+    showRedirect();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  REDIRECT SCREEN
+// ═══════════════════════════════════════════════
+function showRedirect() {
+  document.getElementById('prog').style.width = '100%';
+  document.getElementById('footer').style.display = 'none';
+
+  const hasRealUrl = !!site.signupUrl;
+  let secs = 3;
+
+  document.getElementById('slot').innerHTML = `
+    <div class="redirect-screen slide" id="redir" style="display:flex">
+      <div class="check-ring">✓</div>
+      <h2>Password accepted.</h2>
+      <p>${hasRealUrl
+          ? `You're being redirected to <strong>${site.name}</strong> to complete your sign up.`
+          : `Your <strong>${site.name}</strong> password meets every requirement. Hand it back to the site that embedded Password Demon to finish creating your account.`}</p>
+      ${hasRealUrl ? `
+        <div class="countdown">Redirecting in <strong id="cd">${secs}</strong>s…</div>
+        <a class="manual-link" href="${site.signupUrl}" target="_blank">Go now →</a>
+      ` : ''}
+    </div>
+  `;
+
+  if (hasRealUrl) {
+    const timer = setInterval(() => {
+      secs--;
+      const el = document.getElementById('cd');
+      if(el) el.textContent = secs;
+      if(secs<=0) {
+        clearInterval(timer);
+        window.open(site.signupUrl, '_blank');
+      }
+    }, 1000);
+  }
+}
+</script>
+</body>
+</html>
